@@ -54,6 +54,7 @@ public class StatusBarSignalPolicy implements SignalCallback,
 
     private static final String SHOW_ACTIVITY_INDICATORS =
             "system:" + Settings.System.STATUS_BAR_SHOW_ACTIVITY_INDICATORS;
+    private static final String HIDE_QS_CALL_STRENGTH = "hide_qs_call_strength";        
 
     private final String mSlotAirplane;
     private final String mSlotMobile;
@@ -127,7 +128,7 @@ public class StatusBarSignalPolicy implements SignalCallback,
         }
         mInitialized = true;
         mTunerService.addTunable(this, StatusBarIconController.ICON_HIDE_LIST,
-                SHOW_ACTIVITY_INDICATORS);
+                SHOW_ACTIVITY_INDICATORS, HIDE_QS_CALL_STRENGTH);
         mNetworkController.addCallback(this);
         mSecurityController.addCallback(this);
     }
@@ -260,14 +261,19 @@ public class StatusBarSignalPolicy implements SignalCallback,
             state.callStrengthResId = statusIcon.icon;
             state.callStrengthDescription = statusIcon.contentDescription;
         }
-        if (mCarrierConfigTracker.getCallStrengthConfig(subId)) {
+        boolean hideCallStrength = mTunerService.getValue(HIDE_QS_CALL_STRENGTH, 0) == 0;
+        if (mCarrierConfigTracker.getCallStrengthConfig(subId) && !hideCallStrength) {
             mIconController.setCallStrengthIcons(mSlotCallStrength,
                     CallIndicatorIconState.copyStates(mCallIndicatorStates));
         } else {
             mIconController.removeIcon(mSlotCallStrength, subId);
         }
-        mIconController.setNoCallingIcons(mSlotNoCalling,
+        if (!hideCallStrength) {
+            mIconController.setNoCallingIcons(mSlotNoCalling,
                 CallIndicatorIconState.copyStates(mCallIndicatorStates));
+        } else {
+            mIconController.removeIcon(mSlotNoCalling, subId);
+        }
     }
 
     @Override
