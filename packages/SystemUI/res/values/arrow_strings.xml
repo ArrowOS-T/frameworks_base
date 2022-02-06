@@ -108,4 +108,7 @@
     <!-- Name of the VoWiFi status bar icon. -->
     <string name="status_bar_vowifi">Wi-Fi calling (VoWiFi)</string>
 
+    <!-- Google lens screenshot notification -->
+    <string name="lens">Lens</string>
+
 </resources>
