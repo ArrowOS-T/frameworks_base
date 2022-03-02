@@ -93,5 +93,6 @@ public class SystemSettings {
         Settings.System.LOCKSCREEN_BATTERY_INFO,
         Settings.System.MAX_VISIBLE_NOTIFICATION_ICONS,
         Settings.System.STATUS_BAR_SHOW_ACTIVITY_INDICATORS,
+        Settings.System.USE_OLD_MOBILETYPE,
     };
 }
