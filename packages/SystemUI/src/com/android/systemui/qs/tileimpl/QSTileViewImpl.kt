@@ -28,6 +28,7 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Trace
+import android.provider.Settings
 import android.service.quicksettings.Tile
 import android.text.TextUtils
 import android.util.Log
@@ -179,7 +180,7 @@ open class QSTileViewImpl @JvmOverloads constructor(
         background = null
 
         val iconContainerSize = context.resources.getDimensionPixelSize(R.dimen.qs_quick_tile_size)
-        radiusActive = iconContainerSize / 2f
+        radiusActive = iconContainerSize / 3f
         radiusInactive = iconContainerSize / 4f
         iconContainer = LinearLayout(context)
         iconContainer.layoutParams = LayoutParams(iconContainerSize, iconContainerSize)
@@ -621,6 +622,13 @@ open class QSTileViewImpl @JvmOverloads constructor(
         mBg.cornerRadius = cornerRadius
     }
     private fun getCornerRadiusForState(state: Int): Float {
+        var qsTileShape : Int = Settings.Secure.getInt(context.contentResolver, Settings.Secure.QS_TILE_SHAPE, 2)
+        if (qsTileShape == 0)
+            return radiusActive
+
+        if (qsTileShape == 1)
+            return radiusInactive
+
         return when (state) {
             Tile.STATE_ACTIVE -> radiusActive
             Tile.STATE_INACTIVE -> radiusInactive
