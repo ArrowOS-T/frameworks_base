@@ -73,6 +73,8 @@
     <string name="quick_settings_dc_dimming_label">DC Dimming</string>
     <string name="status_bar_hd_calling">HD calling (VoLTE/VoNR)</string>
     <string name="status_bar_vowifi">Wi-Fi calling (VoWiFi)</string>
+    <string name="status_bar_show_activity_indicators_title">Datenaktivitätsanzeige</string>
+    <string name="status_bar_show_activity_indicators_summary">Datenaktivität für die WLAN und Mobilfunkverbindung anzeigen</string>
 
     <!-- Google Lens Screenshot string -->
     <string name="lens_unavailable">Google Lens ist nicht installiert</string>
