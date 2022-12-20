@@ -42,6 +42,7 @@
         />
 
     <LinearLayout android:id="@+id/status_bar_contents"
+        android:layout_gravity="center_vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="horizontal">
@@ -50,6 +51,7 @@
              width, independent of the number of visible children and sub-children. -->
         <FrameLayout
             android:id="@+id/status_bar_start_side_container"
+            android:layout_gravity="center_vertical"
             android:layout_height="match_parent"
             android:layout_width="0dp"
             android:clipChildren="false"
@@ -60,6 +62,7 @@
                  It is useful when we want to know the visible bounds of the content. -->
             <FrameLayout
                 android:id="@+id/status_bar_start_side_content"
+                android:layout_gravity="center_vertical"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:clipChildren="false">
@@ -71,6 +74,7 @@
                      and DISABLE_NOTIFICATION_ICONS, respectively -->
                 <LinearLayout
                     android:id="@+id/status_bar_start_side_except_heads_up"
+                    android:layout_gravity="center_vertical"
                     android:layout_height="wrap_content"
                     android:layout_width="match_parent"
                     android:clipChildren="false">
@@ -83,7 +87,7 @@
                     <com.android.systemui.statusbar.policy.Clock
                         android:id="@+id/clock"
                         android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:textAppearance="@style/TextAppearance.StatusBar.Clock"
                         android:singleLine="true"
                         android:paddingStart="@dimen/status_bar_left_clock_starting_padding"
