@@ -22,9 +22,11 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Rect;
+import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.Pair;
+import android.util.TypedValue;
 import android.view.DisplayCutout;
 import android.view.MotionEvent;
 import android.view.View;
@@ -45,12 +47,24 @@ import com.android.systemui.statusbar.policy.Offset;
 import com.android.systemui.user.ui.binder.StatusBarUserChipViewBinder;
 import com.android.systemui.user.ui.viewmodel.StatusBarUserChipViewModel;
 import com.android.systemui.util.leak.RotationUtils;
+import com.android.systemui.tuner.TunerService;
 
 import java.util.Objects;
 
-public class PhoneStatusBarView extends FrameLayout {
+public class PhoneStatusBarView extends FrameLayout implements TunerService.Tunable {
     private static final String TAG = "PhoneStatusBarView";
     private final StatusBarContentInsetsProvider mContentInsetsProvider;
+
+    private static final String TOP_PADDING =
+            "system:" + Settings.System.TOP_PADDING;
+    private static final String LEFT_PADDING =
+            "system:" + Settings.System.LEFT_PADDING;
+    private static final String RIGHT_PADDING =
+            "system:" + Settings.System.RIGHT_PADDING;
+
+    private int mTopPad;
+    private int mLeftPad;
+    private int mRightPad;
 
     private DarkReceiver mBattery;
     private DarkReceiver mClock;
@@ -102,6 +116,9 @@ public class PhoneStatusBarView extends FrameLayout {
         mClock = findViewById(R.id.clock);
         mCutoutSpace = findViewById(R.id.cutout_space_view);
         mStatusBarContents = (ViewGroup) findViewById(R.id.status_bar_contents);
+
+        Dependency.get(TunerService.class).addTunable(this,
+                TOP_PADDING, LEFT_PADDING, RIGHT_PADDING);
 
         updateResources();
     }
@@ -231,13 +248,13 @@ public class PhoneStatusBarView extends FrameLayout {
                 R.dimen.status_bar_padding_end);
 
         mStatusBarContents.setPaddingRelative(
-                statusBarPaddingStart,
-                statusBarPaddingTop,
-                statusBarPaddingEnd,
+                (int) mLeftPad,
+                (int) mTopPad,
+                (int) mRightPad,
                 0);
 
         findViewById(R.id.notification_lights_out)
-                .setPaddingRelative(0, statusBarPaddingStart, 0, 0);
+                .setPaddingRelative(0, (int) mLeftPad, 0, 0);
 
         setLayoutParams(layoutParams);
     }
@@ -280,5 +297,28 @@ public class PhoneStatusBarView extends FrameLayout {
                 getPaddingTop(),
                 insets.second,
                 getPaddingBottom());
+    }
+    
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        if (TOP_PADDING.equals(key)) {
+            int mTPadding = TunerService.parseInteger(newValue, 0);
+            mTopPad = Math.round(TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, mTPadding,
+                getResources().getDisplayMetrics()));
+            updateStatusBarHeight();
+        } else if (LEFT_PADDING.equals(key)) {
+            int mLPadding = TunerService.parseInteger(newValue, 0);
+            mLeftPad = Math.round(TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, mLPadding,
+                getResources().getDisplayMetrics()));
+            updateStatusBarHeight();
+        } else if (RIGHT_PADDING.equals(key)) {
+            int mRPadding = TunerService.parseInteger(newValue, 0);
+            mRightPad = Math.round(TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, mRPadding,
+                getResources().getDisplayMetrics()));
+            updateStatusBarHeight();
+        }
     }
 }
