@@ -355,7 +355,8 @@ public class KeyguardIndicationController {
                     mLockScreenIndicationView,
                     mExecutor,
                     mStatusBarStateController,
-                    mKeyguardLogger);
+                    mKeyguardLogger
+            );
         }
         updateDeviceEntryIndication(false /* animate */);
         updateOrganizedOwnedDevice();
