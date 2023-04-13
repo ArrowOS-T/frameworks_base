@@ -20,6 +20,7 @@ import android.annotation.NonNull;
 import android.content.Context;
 import android.os.Handler;
 import android.provider.Settings;
+import android.os.SystemProperties;
 import android.telephony.SubscriptionInfo;
 import android.util.ArraySet;
 import android.util.Log;
@@ -414,7 +415,7 @@ public class StatusBarSignalPolicy implements SignalCallback,
     @Override
     public void setConnectivityStatus(boolean noDefaultNetwork, boolean noValidatedNetwork,
             boolean noNetworksAvailable) {
-        if (!mFeatureFlags.isEnabled(Flags.COMBINED_STATUS_BAR_SIGNAL_ICONS)) {
+        if (!SystemProperties.getBoolean("persist.sys.flags.combined_signal_icons", true)) {
             return;
         }
         if (DEBUG) {
