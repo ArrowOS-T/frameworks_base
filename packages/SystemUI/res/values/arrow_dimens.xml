@@ -78,4 +78,9 @@
     <dimen name="status_bar_mobile_type_height">9dp</dimen>
     <dimen name="status_bar_mobile_type_width">12dp</dimen>
 
+    <!-- QS Paddings -->
+    <dimen name="custom_qs_panel_padding_top">0dp</dimen>
+    <dimen name="custom_notification_row_padding">16dp</dimen>
+    <dimen name="custom_qs_tile_label_line_height">20sp</dimen>
+
 </resources>
