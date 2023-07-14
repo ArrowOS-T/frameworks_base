@@ -52,10 +52,12 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
 import android.util.TypedValue;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.systemui.R;
 import com.android.internal.graphics.ColorUtils;
 import com.android.systemui.CoreStartable;
 import com.android.systemui.Dumpable;
@@ -76,6 +78,7 @@ import com.android.systemui.statusbar.policy.ConfigurationController.Configurati
 import com.android.systemui.statusbar.policy.DeviceProvisionedController;
 import com.android.systemui.statusbar.policy.DeviceProvisionedController.DeviceProvisionedListener;
 import com.android.systemui.util.settings.SecureSettings;
+import com.android.systemui.util.settings.SystemSettings;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -117,6 +120,7 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
     private final BroadcastDispatcher mBroadcastDispatcher;
     private final Executor mBgExecutor;
     private final SecureSettings mSecureSettings;
+    private final SystemSettings mSystemSettings;
     private final Executor mMainExecutor;
     private final Handler mBgHandler;
     private final boolean mIsMonochromaticEnabled;
@@ -373,6 +377,7 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
             @Background Executor bgExecutor,
             ThemeOverlayApplier themeOverlayApplier,
             SecureSettings secureSettings,
+            SystemSettings systemSettings,
             WallpaperManager wallpaperManager,
             UserManager userManager,
             DeviceProvisionedController deviceProvisionedController,
@@ -393,6 +398,7 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
         mBgHandler = bgHandler;
         mThemeManager = themeOverlayApplier;
         mSecureSettings = secureSettings;
+        mSystemSettings = systemSettings;
         mWallpaperManager = wallpaperManager;
         mUserTracker = userTracker;
         mResources = resources;
@@ -465,6 +471,18 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
             return;
         }
 
+        mSystemSettings.registerContentObserverForUser(
+                Settings.System.getUriFor(Settings.System.LOCKSCREEN_WEATHER_ENABLED),
+                false,
+                new ContentObserver(mBgHandler) {
+                    @Override
+                    public void onChange(boolean selfChange, Collection<Uri> collection, int flags,
+                            int userId) {
+                        restartSystemUI();
+                    }
+                },
+                UserHandle.USER_ALL);        
+
         mUserTracker.addCallback(mUserTrackerCallback, mMainExecutor);
 
         mDeviceProvisionedController.addCallback(mDeviceProvisionedListener);
@@ -515,6 +533,18 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
             }
         });
         mConfigurationController.addCallback(mConfigurationListener);
+    }
+    
+    private void restartSystemUI() {
+        Toast toast = Toast.makeText(mContext, R.string.restarting_systemui_msg, Toast.LENGTH_SHORT);
+        toast.show();
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                android.os.Process.killProcess(android.os.Process.myPid());
+            }
+        }, toast.getDuration() + 2000);
     }
 
     private void reevaluateSystemTheme(boolean forceReload) {
