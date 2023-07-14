@@ -56,10 +56,12 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
 import android.util.TypedValue;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.systemui.R;
 import com.android.internal.graphics.ColorUtils;
 import com.android.systemui.CoreStartable;
 import com.android.systemui.Dumpable;
@@ -609,6 +611,18 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
                 },
                 UserHandle.USER_ALL);
 
+        mSystemSettings.registerContentObserverForUser(
+                Settings.System.getUriFor(Settings.System.LOCKSCREEN_WEATHER_ENABLED),
+                false,
+                new ContentObserver(mBgHandler) {
+                    @Override
+                    public void onChange(boolean selfChange, Collection<Uri> collection, int flags,
+                            int userId) {
+                        restartSystemUI();
+                    }
+                },
+                UserHandle.USER_ALL);        
+
         mUserTracker.addCallback(mUserTrackerCallback, mMainExecutor);
 
         mDeviceProvisionedController.addCallback(mDeviceProvisionedListener);
@@ -660,9 +674,17 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
         });
         mConfigurationController.addCallback(mConfigurationListener);
     }
-
+    
     private void restartSystemUI() {
-        android.os.Process.killProcess(android.os.Process.myPid());
+        Toast toast = Toast.makeText(mContext, R.string.restarting_systemui_msg, Toast.LENGTH_SHORT);
+        toast.show();
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                android.os.Process.killProcess(android.os.Process.myPid());
+            }
+        }, toast.getDuration() + 2000);
     }
 
     private void reevaluateSystemTheme(boolean forceReload) {
