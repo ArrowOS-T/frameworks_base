@@ -5769,6 +5769,11 @@ public final class Settings {
         public static final String STATUSBAR_CLOCK_CHIP = "statusbar_clock_chip";
 
         /**
+         * @hide
+         */
+        public static final String ISLAND_NOTIFICATION = "island_notification";
+
+        /**
          * Keys we no longer back up under the current schema, but want to continue to
          * process when restoring historical backup datasets.
          *
