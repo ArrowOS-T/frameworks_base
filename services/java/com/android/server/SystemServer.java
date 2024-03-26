@@ -220,6 +220,8 @@ import dalvik.system.VMRuntime;
 
 import ink.kaleidoscope.server.ParallelSpaceManagerService;
 
+import org.rising.server.RisingServicesStarter;
+
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -2804,6 +2806,9 @@ public final class SystemServer implements Dumpable {
         t.traceBegin("StartParallelSpaceManagerService");
         mSystemServiceManager.startService(PARALLEL_SPACE_SERVICE_CLASS);
         t.traceEnd();
+
+        RisingServicesStarter risingServiceStarter = new RisingServicesStarter(mSystemServiceManager);
+        risingServiceStarter.startAllServices();
 
         // These are needed to propagate to the runnable below.
         final NetworkManagementService networkManagementF = networkManagement;
