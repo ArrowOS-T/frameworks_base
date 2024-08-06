@@ -361,6 +361,10 @@ public class NotificationMediaManager implements Dumpable, TunerService.Tunable 
             .orElse(null);
     }
 
+    public int getMediaBgColor() {
+        return mColorExtractor.getMediaBackgroundColor();
+    }
+
     public void addCallback(MediaListener callback) {
         mMediaListeners.add(callback);
         callback.onPrimaryMetadataOrStateChanged(mMediaMetadata,
@@ -477,7 +481,7 @@ public class NotificationMediaManager implements Dumpable, TunerService.Tunable 
                 && state != PlaybackState.STATE_NONE;
     }
 
-    private boolean sameSessions(MediaController a, MediaController b) {
+    public boolean sameSessions(MediaController a, MediaController b) {
         if (a == b) {
             return true;
         }
@@ -487,7 +491,7 @@ public class NotificationMediaManager implements Dumpable, TunerService.Tunable 
         return a.controlsSameSession(b);
     }
 
-    private int getMediaControllerPlaybackState(MediaController controller) {
+    public int getMediaControllerPlaybackState(MediaController controller) {
         if (controller != null) {
             final PlaybackState playbackState = controller.getPlaybackState();
             if (playbackState != null) {

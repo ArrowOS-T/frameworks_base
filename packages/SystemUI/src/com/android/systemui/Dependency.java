@@ -59,6 +59,7 @@ import com.android.systemui.navigationbar.NavigationBarController;
 import com.android.systemui.navigationbar.NavigationModeController;
 import com.android.systemui.navigationbar.gestural.EdgeBackGestureHandler;
 import com.android.systemui.plugins.ActivityStarter;
+import com.android.systemui.plugins.FalsingManager;
 import com.android.systemui.plugins.DarkIconDispatcher;
 import com.android.systemui.plugins.PluginDependencyProvider;
 import com.android.systemui.plugins.PluginManager;
@@ -239,6 +240,7 @@ public class Dependency {
     @Inject DumpManager mDumpManager;
 
     @Inject Lazy<ActivityStarter> mActivityStarter;
+    @Inject Lazy<FalsingManager> mFalsingManager;
     @Inject Lazy<BroadcastDispatcher> mBroadcastDispatcher;
     @Inject Lazy<AsyncSensorManager> mAsyncSensorManager;
     @Inject Lazy<BluetoothController> mBluetoothController;
@@ -377,6 +379,7 @@ public class Dependency {
         mProviders.put(MAIN_EXECUTOR, mMainExecutor::get);
         mProviders.put(BACKGROUND_EXECUTOR, mBackgroundExecutor::get);
         mProviders.put(ActivityStarter.class, mActivityStarter::get);
+        mProviders.put(FalsingManager.class, mFalsingManager::get);
         mProviders.put(BroadcastDispatcher.class, mBroadcastDispatcher::get);
 
         mProviders.put(AsyncSensorManager.class, mAsyncSensorManager::get);

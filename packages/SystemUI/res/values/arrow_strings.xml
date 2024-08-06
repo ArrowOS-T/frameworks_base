@@ -18,6 +18,8 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
+    <string name="no_media_playing">No Playing</string>
+
     <!-- AOD QS tile -->
     <string name="quick_settings_aod_label">Always-on display</string>
 

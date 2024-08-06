@@ -63,9 +63,12 @@ import kotlin.jvm.functions.Function1;
 @QSScope
 public class QSAnimator implements QSHost.Callback, PagedTileLayout.PageListener,
         TouchAnimator.Listener, OnLayoutChangeListener,
-        OnAttachStateChangeListener {
+        OnAttachStateChangeListener, TunerService.Tunable {
 
     private static final String TAG = "QSAnimator";
+
+    public static final String QS_WIDGETS_ENABLED =
+            "system:" + "qs_widgets_enabled";
 
     private static final float EXPANDED_TILE_DELAY = .86f;
     //Non first page delays
@@ -143,6 +146,7 @@ public class QSAnimator implements QSHost.Callback, PagedTileLayout.PageListener
     private final TunerService mTunerService;
     private boolean mShowCollapsedOnKeyguard;
     private int mQQSTop;
+    private boolean mQsWidgetsEnabled;
 
     private int[] mTmpLoc1 = new int[2];
     private int[] mTmpLoc2 = new int[2];
@@ -222,6 +226,7 @@ public class QSAnimator implements QSHost.Callback, PagedTileLayout.PageListener
 
     @Override
     public void onViewAttachedToWindow(@NonNull View view) {
+        mTunerService.addTunable(this, QS_WIDGETS_ENABLED);
         updateAnimators();
         mQuickQSPanelController.mMediaHost.addVisibilityChangeListener(mMediaHostVisibilityListener);
     }
@@ -230,6 +235,18 @@ public class QSAnimator implements QSHost.Callback, PagedTileLayout.PageListener
     public void onViewDetachedFromWindow(@NonNull View v) {
         mHost.removeCallback(this);
         mQuickQSPanelController.mMediaHost.removeVisibilityChangeListener(mMediaHostVisibilityListener);
+    }
+
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        switch (key) {
+            case QS_WIDGETS_ENABLED:
+                mQsWidgetsEnabled =
+                     TunerService.parseIntegerSwitch(newValue, false);
+                break;
+            default:
+                break;
+         }
     }
 
     private void addNonFirstPageAnimators(int page) {
@@ -447,14 +464,18 @@ public class QSAnimator implements QSHost.Callback, PagedTileLayout.PageListener
                 .setListener(this)
                 .build();
 
-        // Fade in the media player as we reach the final position
         Builder builder = new Builder().setStartDelay(EXPANDED_TILE_DELAY);
-        if (mQsPanelController.shouldUseHorizontalLayout()
-                && mQsPanelController.mMediaHost.hostView != null) {
-            builder.addFloat(mQsPanelController.mMediaHost.hostView, "alpha", 0, 1);
+        // Fade in the media player as we reach the final position
+        if (mQsWidgetsEnabled) {
+            mQsPanelController.mMediaHost.hostView.setAlpha(0f);
         } else {
-            // In portrait, media view should always be visible
-            mQsPanelController.mMediaHost.hostView.setAlpha(1.0f);
+            if (mQsPanelController.shouldUseHorizontalLayout()
+                    && mQsPanelController.mMediaHost.hostView != null) {
+                builder.addFloat(mQsPanelController.mMediaHost.hostView, "alpha", 0, 1);
+            } else {
+                // In portrait, media view should always be visible
+                mQsPanelController.mMediaHost.hostView.setAlpha(1.0f);
+            }
         }
         mAllPagesDelayedAnimator = builder.build();
         translationYBuilder.setInterpolator(mQSExpansionPathInterpolator.getYInterpolator());

@@ -28,6 +28,8 @@ import android.widget.FrameLayout;
 
 import com.android.systemui.R;
 import com.android.systemui.util.LargeScreenUtils;
+import com.android.systemui.qs.TouchAnimator;
+import com.android.systemui.qs.TouchAnimator.Builder;
 
 /**
  * View that contains the top-most bits of the QS panel (primarily the status bar with date, time,
@@ -40,6 +42,10 @@ public class QuickStatusBarHeader extends FrameLayout {
 
     protected QuickQSPanel mHeaderQsPanel;
 
+    public TouchAnimator mQQSContainerAnimator;
+
+    private ViewGroup mQSControlLayout;
+
     public QuickStatusBarHeader(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
@@ -48,6 +54,7 @@ public class QuickStatusBarHeader extends FrameLayout {
     protected void onFinishInflate() {
         super.onFinishInflate();
         mHeaderQsPanel = findViewById(R.id.quick_qs_panel);
+        mQSControlLayout = findViewById(R.id.qs_controls);
 
         updateResources();
     }
@@ -81,15 +88,33 @@ public class QuickStatusBarHeader extends FrameLayout {
         }
         setLayoutParams(lp);
 
+        boolean mQsWidgetsEnabled = TileUtils.canShowQsWidgets(mContext);
+
         MarginLayoutParams qqsLP = (MarginLayoutParams) mHeaderQsPanel.getLayoutParams();
-        if (largeScreenHeaderActive) {
-            qqsLP.topMargin = mContext.getResources()
-                    .getDimensionPixelSize(R.dimen.qqs_layout_margin_top);
-        } else {
-            qqsLP.topMargin = mContext.getResources()
-                    .getDimensionPixelSize(R.dimen.large_screen_shade_header_min_height);
-        }
+        int qqsTopMargin = mContext.getResources()
+                    .getDimensionPixelSize(largeScreenHeaderActive 
+                    ? R.dimen.qqs_layout_margin_top 
+                    : R.dimen.large_screen_shade_header_min_height);
+        qqsLP.topMargin = mQsWidgetsEnabled ? 0 : qqsTopMargin;
         mHeaderQsPanel.setLayoutParams(qqsLP);
+
+        if (mQsWidgetsEnabled && !mQsDisabled) {
+            mQSControlLayout.setVisibility(View.VISIBLE);
+            MarginLayoutParams qsControlsLp = (MarginLayoutParams) mQSControlLayout.getLayoutParams();
+            int qqsMarginTop = resources.getDimensionPixelSize(largeScreenHeaderActive ?
+                                R.dimen.qqs_layout_margin_top : R.dimen.large_screen_shade_header_min_height);
+            qsControlsLp.topMargin = qqsMarginTop;
+            mQSControlLayout.setLayoutParams(qsControlsLp);
+
+            float qqsExpandY = resources.getDimensionPixelSize(R.dimen.qs_header_height)
+                                + resources.getDimensionPixelSize(R.dimen.qs_controls_top_margin)
+                                - qqsMarginTop;
+            TouchAnimator.Builder builderP = new TouchAnimator.Builder()
+                .addFloat(mQSControlLayout, "translationY", 0, qqsExpandY);
+            mQQSContainerAnimator = builderP.build();
+        } else {
+            mQSControlLayout.setVisibility(View.GONE);
+        }
     }
 
     public void setExpanded(boolean expanded, QuickQSPanelController quickQSPanelController) {
@@ -97,6 +122,14 @@ public class QuickStatusBarHeader extends FrameLayout {
         mExpanded = expanded;
         quickQSPanelController.setExpanded(expanded);
     }
+
+    public void setExpansion(boolean forceExpanded, float expansionFraction, float panelTranslationY) {
+        if (!TileUtils.canShowQsWidgets(mContext)) return;
+        if (mQQSContainerAnimator != null) {
+            mQQSContainerAnimator.setPosition(forceExpanded ? 1f : expansionFraction);
+        }
+        setAlpha(forceExpanded ? expansionFraction : 1);
+	}
 
     public void disable(int state1, int state2, boolean animate) {
         final boolean disabled = (state2 & DISABLE2_QUICK_SETTINGS) != 0;
