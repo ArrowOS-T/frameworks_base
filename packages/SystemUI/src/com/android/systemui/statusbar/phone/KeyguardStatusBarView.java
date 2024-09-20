@@ -26,6 +26,8 @@ import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.os.UserManager;
+import android.provider.Settings;
 import android.os.Trace;
 import android.util.AttributeSet;
 import android.util.Pair;
@@ -47,7 +49,10 @@ import com.android.settingslib.Utils;
 import com.android.systemui.R;
 import com.android.systemui.animation.Interpolators;
 import com.android.systemui.battery.BatteryMeterView;
+import com.android.systemui.Dependency;
 import com.android.systemui.plugins.DarkIconDispatcher.DarkReceiver;
+import com.android.systemui.statusbar.CommandQueue.Callbacks;
+import com.android.systemui.tuner.TunerService;
 import com.android.systemui.statusbar.phone.userswitcher.StatusBarUserSwitcherContainer;
 import com.android.systemui.user.ui.binder.StatusBarUserChipViewBinder;
 import com.android.systemui.user.ui.viewmodel.StatusBarUserChipViewModel;
@@ -58,13 +63,17 @@ import java.util.ArrayList;
 /**
  * The header group on Keyguard.
  */
-public class KeyguardStatusBarView extends RelativeLayout {
+public class KeyguardStatusBarView extends RelativeLayout implements Callbacks, TunerService.Tunable {
 
     private static final int LAYOUT_NONE = 0;
     private static final int LAYOUT_CUTOUT = 1;
     private static final int LAYOUT_NO_CUTOUT = 2;
 
     private final ArrayList<Rect> mEmptyTintRect = new ArrayList<>();
+    private static final String LEFT_PADDING =
+            "system:" + Settings.System.LEFT_PADDING;
+    private static final String RIGHT_PADDING =
+            "system:" + Settings.System.RIGHT_PADDING;
 
     private boolean mShowPercentAvailable;
     private boolean mBatteryCharging;
@@ -82,6 +91,10 @@ public class KeyguardStatusBarView extends RelativeLayout {
     private int mSystemIconsSwitcherHiddenExpandedMargin;
     private int mStatusBarPaddingEnd;
     private int mMinDotWidth;
+    private int mLeftPad = getResources().getDimensionPixelSize(
+                R.dimen.status_bar_padding_start);
+    private int mRightPad = getResources().getDimensionPixelSize(
+                R.dimen.status_bar_padding_end);
     private View mSystemIconsContainer;
 
     private View mCutoutSpace;
@@ -96,7 +109,7 @@ public class KeyguardStatusBarView extends RelativeLayout {
     private DisplayCutout mDisplayCutout;
     private int mRoundedCornerPadding = 0;
     // right and left padding applied to this view to account for cutouts and rounded corners
-    private Pair<Integer, Integer> mPadding = new Pair(0, 0);
+    private Pair<Integer, Integer> mPadding = new Pair((int) mLeftPad, (int) mRightPad);
 
     /**
      * The clipping on the top
@@ -122,6 +135,8 @@ public class KeyguardStatusBarView extends RelativeLayout {
         mUserSwitcherContainer = findViewById(R.id.user_switcher_container);
         mIsPrivacyDotEnabled = mContext.getResources().getBoolean(R.bool.config_enablePrivacyDot);
         loadDimens();
+        Dependency.get(TunerService.class).addTunable(this,
+            LEFT_PADDING, RIGHT_PADDING);
     }
 
     /**
@@ -145,14 +160,6 @@ public class KeyguardStatusBarView extends RelativeLayout {
         // System icons
         updateSystemIconsLayoutParams();
 
-        // mStatusIconArea
-        mStatusIconArea.setPaddingRelative(
-                mStatusIconArea.getPaddingStart(),
-                getResources().getDimensionPixelSize(R.dimen.status_bar_padding_top),
-                mStatusIconArea.getPaddingEnd(),
-                mStatusIconArea.getPaddingBottom()
-        );
-
         // mStatusIconContainer
         mStatusIconContainer.setPaddingRelative(
                 mStatusIconContainer.getPaddingStart(),
@@ -167,6 +174,7 @@ public class KeyguardStatusBarView extends RelativeLayout {
                         com.android.internal.R.dimen.text_size_small_material));
 
         updateKeyguardStatusBarHeight();
+        updateStatusBarLRPaddings();
     }
 
     public void setUserSwitcherEnabled(boolean enabled) {
@@ -193,6 +201,27 @@ public class KeyguardStatusBarView extends RelativeLayout {
                 com.android.internal.R.bool.config_battery_percentage_setting_available);
         mRoundedCornerPadding = res.getDimensionPixelSize(
                 R.dimen.rounded_corner_content_padding);
+    }
+
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        int statusBarPaddingStart = getResources().getDimensionPixelSize(
+                R.dimen.status_bar_padding_start);
+        int statusBarPaddingEnd = getResources().getDimensionPixelSize(
+                R.dimen.status_bar_padding_end);
+        if (LEFT_PADDING.equals(key)) {
+            int mLPadding = TunerService.parseInteger(newValue, statusBarPaddingStart);
+            mLeftPad = Math.round(TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, mLPadding,
+                getResources().getDisplayMetrics()));
+            updateStatusBarLRPaddings();
+        } else if (RIGHT_PADDING.equals(key)) {
+            int mRPadding = TunerService.parseInteger(newValue, statusBarPaddingEnd);
+            mRightPad = Math.round(TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, mRPadding,
+                getResources().getDisplayMetrics()));
+            updateStatusBarLRPaddings();
+        }
     }
 
     private void updateVisibilities() {
@@ -250,6 +279,8 @@ public class KeyguardStatusBarView extends RelativeLayout {
             lp.setMarginEnd(marginEnd);
             mSystemIconsContainer.setLayoutParams(lp);
         }
+
+        updateStatusBarLRPaddings();
     }
 
     /** Should only be called from {@link KeyguardStatusBarViewController}. */
@@ -306,6 +337,7 @@ public class KeyguardStatusBarView extends RelativeLayout {
         lp.width = LayoutParams.WRAP_CONTENT;
         lp.setMarginStart(getResources().getDimensionPixelSize(
                 R.dimen.system_icons_super_container_margin_start));
+        updateStatusBarLRPaddings();
         return true;
     }
 
@@ -337,7 +369,25 @@ public class KeyguardStatusBarView extends RelativeLayout {
         lp.addRule(RelativeLayout.RIGHT_OF, R.id.cutout_space_view);
         lp.width = LayoutParams.MATCH_PARENT;
         lp.setMarginStart(0);
+        updateStatusBarLRPaddings();
         return true;
+    }
+
+    void updateStatusBarLRPaddings() {
+    	// Carrier Label
+        mCarrierLabel.setPaddingRelative(
+        	(int) mLeftPad, 
+        	getResources().getDimensionPixelSize(R.dimen.status_bar_padding_top), 
+        	0, 
+        	0
+        );
+        // mStatusIconArea
+        mStatusIconArea.setPaddingRelative(
+                mStatusIconArea.getPaddingStart(),
+                getResources().getDimensionPixelSize(R.dimen.status_bar_padding_top),
+                (int) mRightPad,
+                mStatusIconArea.getPaddingBottom()
+        );
     }
 
     /** Should only be called from {@link KeyguardStatusBarViewController}. */
@@ -433,6 +483,7 @@ public class KeyguardStatusBarView extends RelativeLayout {
     void onThemeChanged(StatusBarIconController.TintedIconManager iconManager) {
         mBatteryView.setColorsFromContext(mContext);
         updateIconsAndTextColors(iconManager);
+        updateStatusBarLRPaddings();
     }
 
     /** Should only be called from {@link KeyguardStatusBarViewController}. */
@@ -440,11 +491,7 @@ public class KeyguardStatusBarView extends RelativeLayout {
         int theme = Utils.getThemeAttr(mContext, com.android.internal.R.attr.textAppearanceSmall);
         mCarrierLabel.setTextAppearance(theme);
         mBatteryView.updatePercentView();
-
-        TextView userSwitcherName = mUserSwitcherContainer.findViewById(R.id.current_user_name);
-        if (userSwitcherName != null) {
-            userSwitcherName.setTextAppearance(theme);
-        }
+        updateStatusBarLRPaddings();
     }
 
     private void updateIconsAndTextColors(StatusBarIconController.TintedIconManager iconManager) {
