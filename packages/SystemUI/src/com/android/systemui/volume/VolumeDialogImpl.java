@@ -1256,24 +1256,21 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                         == BluetoothProfile.STATE_CONNECTED;
     }
 
-    private boolean isMediaControllerAvailable() {
-        final MediaController mediaController = getActiveLocalMediaController();
-        return mediaController != null &&
-                !TextUtils.isEmpty(mediaController.getPackageName());
-    }
-
     private void initSettingsH(int lockTaskModeState) {
         if (mSettingsView != null) {
             mSettingsView.setVisibility(
                     mDeviceProvisionedController.isCurrentUserSetup() &&
-                            (isMediaControllerAvailable() || isBluetoothA2dpConnected()) &&
-                            lockTaskModeState == LOCK_TASK_MODE_NONE ? VISIBLE : GONE);
+                            lockTaskModeState == LOCK_TASK_MODE_NONE && isBluetoothA2dpConnected() ? VISIBLE : GONE);
         }
         if (mSettingsIcon != null) {
             mSettingsIcon.setOnClickListener(v -> {
                 Events.writeEvent(Events.EVENT_SETTINGS_CLICK);
-                String packageName = isMediaControllerAvailable()
-                        ? getActiveLocalMediaController().getPackageName() : "";
+                final MediaController mediaController = getActiveLocalMediaController();
+                String packageName =
+                        mediaController != null
+                                && !TextUtils.isEmpty(mediaController.getPackageName())
+                                ? mediaController.getPackageName()
+                                : "";
                 if (FeatureFlagUtils.isEnabled(mContext,
                         FeatureFlagUtils.SETTINGS_VOLUME_PANEL_IN_SYSTEMUI)) {
                     mVolumePanelFactory.create(true /* aboveStatusBar */, null);
