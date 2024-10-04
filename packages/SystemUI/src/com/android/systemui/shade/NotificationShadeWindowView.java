@@ -94,6 +94,7 @@ public class NotificationShadeWindowView extends FrameLayout {
         if (getFitsSystemWindows()) {
             boolean paddingChanged = insets.top != getPaddingTop()
                     || insets.bottom != getPaddingBottom();
+
             // Drop top inset, and pass through bottom inset.
             if (paddingChanged) {
                 setPadding(0, 0, 0, 0);
@@ -125,13 +126,9 @@ public class NotificationShadeWindowView extends FrameLayout {
             View child = getChildAt(i);
             if (child.getLayoutParams() instanceof LayoutParams) {
                 LayoutParams lp = (LayoutParams) child.getLayoutParams();
-                boolean marginChanged = lp.rightMargin != mRightInset || lp.leftMargin != mLeftInset;
-                if (marginChanged) {
-                    lp.leftMargin = lp.ignoreLeftInset ? 0 : mLeftInset;
+                if (lp.rightMargin != mRightInset || lp.leftMargin != mLeftInset) {
                     lp.rightMargin = lp.ignoreRightInset ? 0 : mRightInset;
-                    if (lp.ignoreLeftInset && lp.rightMargin == 0) {
-                        lp.rightMargin = mRightInset;
-                    }
+                    lp.leftMargin = lp.ignoreLeftInset ? 0 : mLeftInset;
                     child.requestLayout();
                 }
             }
