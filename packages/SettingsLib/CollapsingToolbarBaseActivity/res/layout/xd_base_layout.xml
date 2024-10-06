@@ -51,7 +51,7 @@
           app:scrimAnimationDuration="50"
           app:scrimVisibleHeightTrigger="@dimen/xd_toolbar_scrim"
           app:statusBarScrim="@null"
-          app:titleCollapseMode="fade"
+          app:titleCollapseMode="scale"
           app:toolbarId="@id/action_bar">
             
             <Toolbar
