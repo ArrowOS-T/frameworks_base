@@ -212,14 +212,7 @@ public class StatusBarSignalPolicy implements SignalCallback,
             updateShowWifiSignalSpacer(newState);
         }
         newState.slot = mSlotWifi;
-        // Show the airplane spacer only if the mobile state is null
-        // or vowifi is not visible.
-        // Otherwise wifi icon view will end up with two spacers
-        // (signal and airplane).
-        // so it creates large space between wifi and VoWifi icon.
-        MobileIconState first = getFirstMobileState();
-        newState.airplaneSpacerVisible = mIsAirplaneMode &&
-                (first == null || first.typeId != R.drawable.ic_vowifi);
+        newState.airplaneSpacerVisible = mIsAirplaneMode;
         updateWifiIconWithState(newState);
         mWifiIconState = newState;
     }
