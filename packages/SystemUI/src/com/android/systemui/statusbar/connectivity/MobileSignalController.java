@@ -15,8 +15,6 @@
  */
 package com.android.systemui.statusbar.connectivity;
 
-import static android.telephony.ims.stub.ImsRegistrationImplBase.REGISTRATION_TECH_IWLAN;
-import static android.telephony.ims.stub.ImsRegistrationImplBase.REGISTRATION_TECH_NONE;
 import static android.telephony.TelephonyManager.UNKNOWN_CARRIER_ID;
 
 import android.content.Context;
@@ -36,16 +34,8 @@ import android.telephony.SignalStrength;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
-import android.telephony.ims.ImsException;
-import android.telephony.ims.ImsMmTelManager;
-import android.telephony.ims.ImsReasonInfo;
-import android.telephony.ims.ImsRegistrationAttributes;
-import android.telephony.ims.ImsStateCallback;
-import android.telephony.ims.RegistrationManager.RegistrationCallback;
-import android.telephony.ims.feature.MmTelFeature;
 import android.text.Html;
 import android.text.TextUtils;
-import android.util.ArraySet;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -57,11 +47,8 @@ import com.android.settingslib.mobile.MobileStatusTracker.MobileStatus;
 import com.android.settingslib.mobile.MobileStatusTracker.SubscriptionDefaults;
 import com.android.settingslib.mobile.TelephonyIcons;
 import com.android.settingslib.net.SignalStrengthUtil;
-import com.android.systemui.Dependency;
 import com.android.systemui.R;
-import com.android.systemui.statusbar.phone.StatusBarIconController;
 import com.android.systemui.statusbar.pipeline.mobile.util.MobileMappingsProxy;
-import com.android.systemui.tuner.TunerService;
 import com.android.systemui.util.CarrierConfigTracker;
 
 import java.io.PrintWriter;
@@ -93,30 +80,11 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
     boolean mInflateSignalStrengths = false;
     @VisibleForTesting
     final MobileStatusTracker mMobileStatusTracker;
-    private final ImsMmTelManager mImsMmTelManager;
 
     // Save the previous STATUS_HISTORY_SIZE states for logging.
     private final String[] mMobileStatusHistory = new String[STATUS_HISTORY_SIZE];
     // Where to copy the next state into.
     private int mMobileStatusHistoryIndex;
-
-    private boolean mHideRoaming;
-    private boolean mHideHd;
-    private boolean mHideVowifi;
-
-    private static final String KEY_ROAMING = "roaming";
-    private static final String KEY_HD_CALLING = "hd_calling";
-    private static final String KEY_VOWIFI = "vowifi";
-
-    private final TunerService mTunerService;
-    private final TunerService.Tunable mTunable = (key, value) -> {
-        final ArraySet<String> hideList =
-                StatusBarIconController.getIconHideList(mContext, value);
-        mHideRoaming = hideList.contains(KEY_ROAMING);
-        mHideHd = hideList.contains(KEY_HD_CALLING);
-        mHideVowifi = hideList.contains(KEY_VOWIFI);
-        notifyListeners();
-    };
 
     private final MobileStatusTracker.Callback mMobileCallback =
             new MobileStatusTracker.Callback() {
@@ -147,56 +115,6 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
                     }
                 }
             };
-
-    private final ImsStateCallback mImsStateCallback = new ImsStateCallback() {
-        @Override
-        public void onUnavailable(int reason) {
-            Log.d(mTag, "ImsStateCallback.onUnavailable: reason=" + reason);
-            unregisterImsListeners();
-        }
-
-        @Override
-        public void onAvailable() {
-            Log.d(mTag, "ImsStateCallback.onAvailable");
-            registerImsListeners();
-        }
-
-        @Override
-        public void onError() {
-            Log.e(mTag, "ImsStateCallback.onError");
-            unregisterImsListeners();
-        }
-    };
-
-    private final RegistrationCallback mRegistrationCallback = new RegistrationCallback() {
-        @Override
-        public void onRegistered(ImsRegistrationAttributes attributes) {
-            Log.d(mTag, "onRegistered: attributes=" + attributes);
-            mCurrentState.imsRegistered = true;
-            mCurrentState.imsRegistrationTech = attributes.getRegistrationTechnology();
-            notifyListenersIfNecessary();
-        }
-
-        @Override
-        public void onUnregistered(ImsReasonInfo info) {
-            Log.d(mTag, "onUnregistered: info=" + info);
-            mCurrentState.imsRegistered = false;
-            mCurrentState.imsRegistrationTech = REGISTRATION_TECH_NONE;
-            notifyListenersIfNecessary();
-        }
-    };
-
-    private ImsMmTelManager.CapabilityCallback mCapabilityCallback
-            = new ImsMmTelManager.CapabilityCallback() {
-        @Override
-        public void onCapabilitiesStatusChanged(MmTelFeature.MmTelCapabilities config) {
-            mCurrentState.imsVoiceCapable =
-                    config.isCapable(MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VOICE);
-            Log.d(mTag, "onCapabilitiesStatusChanged: imsVoiceCapable="
-                    + mCurrentState.imsVoiceCapable);
-            notifyListenersIfNecessary();
-        }
-    };
 
     // TODO: Reduce number of vars passed in, if we have the NetworkController, probably don't
     // need listener lists anymore.
@@ -244,8 +162,6 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
             }
         };
         mMobileStatusTracker = mobileStatusTrackerFactory.createTracker(mMobileCallback);
-        mImsMmTelManager = ImsMmTelManager.createForSubscriptionId(info.getSubscriptionId());
-        mTunerService = Dependency.get(TunerService.class);
 	    Handler mHandler = new Handler();
         SettingsObserver settingsObserver = new SettingsObserver(mHandler);
         settingsObserver.observe();
@@ -321,13 +237,6 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
         mContext.getContentResolver().registerContentObserver(Global.getUriFor(
                 Global.MOBILE_DATA + mSubscriptionInfo.getSubscriptionId()),
                 true, mObserver);
-        try {
-            mImsMmTelManager.registerImsStateCallback(mContext.getMainExecutor(),
-                    mImsStateCallback);
-        } catch (ImsException e) {
-            Log.e(mTag, "failed to call registerImsStateCallback", e);
-        }
-        mTunerService.addTunable(mTunable, StatusBarIconController.ICON_HIDE_LIST);
     }
 
     /**
@@ -336,29 +245,6 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
     public void unregisterListener() {
         mMobileStatusTracker.setListening(false);
         mContext.getContentResolver().unregisterContentObserver(mObserver);
-        mImsMmTelManager.unregisterImsStateCallback(mImsStateCallback);
-        unregisterImsListeners();
-        mTunerService.removeTunable(mTunable);
-    }
-
-    private void registerImsListeners() {
-        try {
-            mImsMmTelManager.registerMmTelCapabilityCallback(mContext.getMainExecutor(),
-                    mCapabilityCallback);
-            mImsMmTelManager.registerImsRegistrationCallback(mContext.getMainExecutor(),
-                    mRegistrationCallback);
-        } catch (Exception e) {
-            Log.e(mTag, "unable to register ims callbacks", e);
-        }
-    }
-
-    private void unregisterImsListeners() {
-        try {
-            mImsMmTelManager.unregisterMmTelCapabilityCallback(mCapabilityCallback);
-            mImsMmTelManager.unregisterImsRegistrationCallback(mRegistrationCallback);
-        } catch (Exception e) {
-            Log.e(mTag, "unable to unregister ims callbacks", e);
-        }
     }
 
     private void updateInflateSignalStrength() {
@@ -388,8 +274,7 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
                             && mCurrentState.defaultDataOff));
             boolean noInternet = mCurrentState.inetCondition == 0;
             boolean cutOut = dataDisabled || noInternet;
-            boolean roaming = isRoaming() && !mHideRoaming;
-            return SignalDrawable.getState(level, getNumLevels(), cutOut, roaming);
+            return SignalDrawable.getState(level, getNumLevels(), cutOut);
         } else if (mCurrentState.enabled) {
             return SignalDrawable.getEmptyState(getNumLevels());
         } else {
@@ -440,7 +325,6 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
                 mSubscriptionInfo.getSubscriptionId(),
                 mCurrentState.roaming,
                 sbInfo.showTriangle,
-                sbInfo.showHd,
                 mCurrentState.isDefault);
         callback.setMobileDataIndicators(mobileDataIndicators);
     }
@@ -477,18 +361,8 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
         int typeIcon =
                 (showDataIconInStatusBar || mConfig.alwaysShowDataRatIcon) ? dataTypeIcon : 0;
         boolean showTriangle = mCurrentState.enabled && !mCurrentState.airplaneMode;
-        boolean showHd = mCurrentState.imsRegistered && mCurrentState.imsVoiceCapable && !mHideHd;
 
-        if (mCurrentState.imsRegistrationTech == REGISTRATION_TECH_IWLAN
-                && mCurrentState.imsVoiceCapable && !mHideVowifi) {
-            typeIcon = R.drawable.ic_vowifi;
-            statusIcon = new IconState(true,
-                    ((mCurrentState.enabled && !mCurrentState.airplaneMode) ? statusIcon.icon : -1),
-                    contentDescription);
-            showHd = false;
-        }
-
-        return new SbInfo(showTriangle, showHd, typeIcon, statusIcon);
+        return new SbInfo(showTriangle, typeIcon, statusIcon);
     }
 
     @Override
@@ -760,21 +634,20 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
 
     /** Box for status bar icon info */
     private static final class SbInfo {
-        final boolean showTriangle, showHd;
+        final boolean showTriangle;
         final int ratTypeIcon;
         final IconState icon;
 
-        SbInfo(boolean show, boolean hd, int typeIcon, IconState iconState) {
+        SbInfo(boolean show, int typeIcon, IconState iconState) {
             showTriangle = show;
-            showHd = hd;
             ratTypeIcon = typeIcon;
             icon = iconState;
         }
 
         @Override
         public String toString() {
-            return "SbInfo: showTriangle=" + showTriangle + " showHd=" + showHd
-                    + " ratTypeIcon=" + ratTypeIcon + " icon=" + icon;
+            return "SbInfo: showTriangle=" + showTriangle + " ratTypeIcon=" + ratTypeIcon
+                    + " icon=" + icon;
         }
     }
 }
