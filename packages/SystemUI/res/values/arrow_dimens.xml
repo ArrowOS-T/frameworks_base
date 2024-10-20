@@ -16,9 +16,6 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
-    <!-- Width of the battery icon in the status bar when set to circle style. -->
-    <dimen name="status_bar_battery_icon_circle_width">14.5dp</dimen>
-
     <!-- Maximum vertical offset of statusbar for burn-in protection -->
     <dimen name="status_bar_offset_max_y">4dp</dimen>
 
