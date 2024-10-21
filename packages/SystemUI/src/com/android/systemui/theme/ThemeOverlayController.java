@@ -665,7 +665,7 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
         android.os.Process.killProcess(android.os.Process.myPid());
     }
 
-    protected void reevaluateSystemTheme(boolean forceReload) {
+    private void reevaluateSystemTheme(boolean forceReload) {
         final WallpaperColors currentColors = mCurrentColors.get(mUserTracker.getUserId());
         final int mainColor;
         if (currentColors == null) {
