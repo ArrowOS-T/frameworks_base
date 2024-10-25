@@ -15,6 +15,7 @@
 package com.android.settingslib.graph
 
 import android.content.Context
+import android.content.res.Resources
 import android.graphics.*
 import android.graphics.drawable.Drawable
 
@@ -156,9 +157,23 @@ open class LandscapeBatteryDrawableiOS16(private val context: Context, frameColo
         p.style = Paint.Style.FILL_AND_STROKE
     }
 
-    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).also { p ->
-        p.typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
-        p.textAlign = Paint.Align.CENTER
+    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        typeface = getFontTypeface()
+        textAlign = Paint.Align.CENTER
+    }
+
+    // Get font from framework for textPaint
+    fun getFontTypeface(): Typeface? {
+        val typedValue = TypedValue()
+        val systemResources = Resources.getSystem()
+        val resourceId = systemResources.getIdentifier("config_headlineFontFamilyMedium", "string", "android")
+
+        return if (resourceId != 0) {
+            val fontFamilyName = systemResources.getString(resourceId)
+            Typeface.create(fontFamilyName, Typeface.BOLD)
+        } else {
+            null
+        }
     }
 
     init {
