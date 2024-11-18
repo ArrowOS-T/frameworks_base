@@ -5794,13 +5794,6 @@ public final class Settings {
         public static final String ISLAND_NOTIFICATION = "island_notification";
 
         /**
-         * Whether to display activity indicators on wifi and mobile icons
-         *
-         * @hide
-         */
-        public static final String STATUS_BAR_SHOW_ACTIVITY_INDICATORS = "status_bar_show_activity_indicators";
-
-        /**
          * Battery style
          * @hide
          */
